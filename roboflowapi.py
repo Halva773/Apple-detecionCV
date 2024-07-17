@@ -1,5 +1,7 @@
 from inference_sdk import InferenceHTTPClient, InferenceConfiguration
+from split_images import save_images
 import cv2
+import os
 
 
 def draw_boxes(image, predictions):
@@ -31,24 +33,45 @@ def draw_boxes(image, predictions):
 
     return image
 
-CLIENT = InferenceHTTPClient(
-    api_url="https://detect.roboflow.com",
-    api_key="JJBJxldWGHzfpkUGxBVb"
-)
 
-img = cv2.imread('images/DSC01634.JPG')
+def get_all_files(folder_path):
+    try:
+        # Получаем список всех файлов и папок в указанной директории
+        entries = os.listdir(folder_path)
 
-threshold = 0.1
-custom_configuration = InferenceConfiguration(confidence_threshold=threshold)
+        # Формируем список полных путей файлов
+        return [os.path.join(folder_path, entry) for entry in entries if
+                os.path.isfile(os.path.join(folder_path, entry))]
 
-with CLIENT.use_configuration(custom_configuration):
-    result = CLIENT.infer(img, model_id=r"apple-sdwin/1")
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return []
 
 
-print(len(result['predictions']))
+if __name__ == '__main__':
+    n = 4  # Квадратный корень количества кусков, на которые изображение будет разделено (при n=4 будет 16 кусочков)
+    image_path = 'images/DSC01634.JPG'  # Путь к изображению
+    output_folder = 'splited-images'  # Путь к папке, куда будут сохраняться кусочки изображения
+    threshold = 0.1  # Пороговый уровень уверенности в яблоке на кратинке
 
-img_with_boxes = draw_boxes(img, result['predictions'])
+    CLIENT = InferenceHTTPClient(
+        api_url="https://detect.roboflow.com",
+        api_key="JJBJxldWGHzfpkUGxBVb"
+    )
 
-# Сохраняем результат
-output_path = f'images/output_with_boxes_{threshold}.jpg'
-cv2.imwrite(output_path, img_with_boxes)
+    filename = str(image_path.split('/')[1].split('.')[0])
+    save_images(image_path, output_folder, n)
+
+    custom_configuration = InferenceConfiguration(confidence_threshold=threshold)
+
+    for index, image in enumerate(get_all_files(output_folder)):
+        img = cv2.imread(image)
+        with CLIENT.use_configuration(custom_configuration):
+            result = CLIENT.infer(img, model_id=r"apple-sdwin/1")
+
+        print(len(result['predictions']))
+
+        img_with_boxes = draw_boxes(img, result['predictions'])
+
+        output_path = f'detected-images/{filename}_{index}_{threshold}.jpg'
+        cv2.imwrite(output_path, img_with_boxes)
