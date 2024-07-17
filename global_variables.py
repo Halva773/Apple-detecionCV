@@ -1,0 +1,1 @@
+alphavit = 'abcdefghijklmnopqrstuvwxyz'
