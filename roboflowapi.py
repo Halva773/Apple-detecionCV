@@ -52,7 +52,8 @@ if __name__ == '__main__':
     n = 4  # Квадратный корень количества кусков, на которые изображение будет разделено (при n=4 будет 16 кусочков)
     image_path = 'images/DSC01634.JPG'  # Путь к изображению
     output_folder = 'splited-images'  # Путь к папке, куда будут сохраняться кусочки изображения
-    threshold = 0.1  # Пороговый уровень уверенности в яблоке на кратинке
+    threshold = 0.3  # Пороговый уровень уверенности в яблоке на кратинке
+    alphavit = 'abcdefghijklmnopqrstuvwxyz'
 
     CLIENT = InferenceHTTPClient(
         api_url="https://detect.roboflow.com",
@@ -62,16 +63,23 @@ if __name__ == '__main__':
     filename = str(image_path.split('/')[1].split('.')[0])
     save_images(image_path, output_folder, n)
 
-    custom_configuration = InferenceConfiguration(confidence_threshold=threshold)
+    custom_configuration = InferenceConfiguration(confidence_threshold=threshold, iou_threshold=0.7)
+
+    cnt_apples = 0
 
     for index, image in enumerate(get_all_files(output_folder)):
         img = cv2.imread(image)
         with CLIENT.use_configuration(custom_configuration):
-            result = CLIENT.infer(img, model_id=r"apple-sdwin/1")
+            # result = CLIENT.infer(img, model_id=r"apple-sdwin/1")
 
-        print(len(result['predictions']))
+            # https://universe.roboflow.com/deep-learning-mqq34/apples-detection-xkhog/model/4
+            # Эта модель сильно лучше той, что выше
+            result = CLIENT.infer(img, model_id="apples-detection-xkhog/4")
+
+        cnt_apples += len(result['predictions'])
 
         img_with_boxes = draw_boxes(img, result['predictions'])
 
-        output_path = f'detected-images/{filename}_{index}_{threshold}.jpg'
+        output_path = f'detected-images/{filename}_{alphavit[index]}_{threshold}.jpg'
         cv2.imwrite(output_path, img_with_boxes)
+    print(cnt_apples)

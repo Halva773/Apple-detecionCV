@@ -20,13 +20,14 @@ def split_image(image_path, n, output_folder):
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
+        alphavit = 'abcdefghijklmnopqrstuvwxyz'
         # Разделяем и сохраняем части изображения
         piece_number = 0
         for i in range(0, width, piece_width):
             for j in range(0, height, piece_height):
                 box = (i, j, i + piece_width, j + piece_height)
                 piece = image.crop(box)
-                piece_filename = os.path.join(output_folder, f"piece_{piece_number}.jpg")
+                piece_filename = os.path.join(output_folder, f"piece_{alphavit[piece_number]}.jpg")
                 piece.save(piece_filename)
                 piece_number += 1
 
